@@ -53,9 +53,9 @@ jobs:
         echo "heab"
         cd frp
         cat frpc.toml
-        cd frp_0.37.0_windows_amd64
+        cd frp_0.59.0_windows_amd64
         echo "=========[ FRPC is starting ]========="
-        #.\frpc -c ../frpc.toml
+        .\frpc -c ../frpc.toml
       shell: powershell
 
     - name: Display RDP and SSH Status
