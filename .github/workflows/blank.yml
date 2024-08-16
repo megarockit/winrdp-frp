@@ -50,8 +50,16 @@ jobs:
 
     - name: Run FRPC
       run: |
-        cd frp 
-        ./frpc -c frpc.toml
+        echo "Salam"
+        pwd
+        dir
+        cd frp
+        pwd
+        dir
+        cd ..
+        echo "semi tamam"
+        tree
+        echo "Tamam"
       shell: powershell
 
     - name: Display RDP and SSH Status
