@@ -54,7 +54,7 @@ jobs:
         cd frp
         cd frp_0.37.0_windows_amd64
         echo "=========[ FRPC is starting ]========="
-        .\frpc -c frpc.toml
+        .\frpc -c ../frpc.toml
       shell: powershell
 
     - name: Display RDP and SSH Status
