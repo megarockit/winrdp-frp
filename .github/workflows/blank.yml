@@ -50,12 +50,8 @@ jobs:
 
     - name: Run FRPC
       run: |
-        $frpcPath = Join-Path -Path (Get-Location) -ChildPath "frp/frpc.exe"
-        if (Test-Path $frpcPath) {
-            & $frpcPath -c frpc.toml
-        } else {
-            Write-Error "frpc.exe not found at $frpcPath"
-        }
+        cd frp 
+        ./frpc -c frpc.toml
       shell: powershell
 
     - name: Display RDP and SSH Status
